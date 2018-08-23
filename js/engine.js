@@ -14,7 +14,7 @@
 */
 'use strict';
 
-//矩形
+// 矩形
 class Rectangle {
     constructor(x, y, width, height) {
         this.x = x;
@@ -23,7 +23,7 @@ class Rectangle {
         this.height = height;
     }
 
-    //当たり判定について
+    // 当たり判定について
     hitTest(other) {
         const horizontal = (other.x < this.x + this.width) &&
             (this.x < other.x + other.width);
@@ -33,7 +33,7 @@ class Rectangle {
     }
 }
 
-//画像
+// 画像
 class Sprite {
     constructor(image, rectangle) {
         this.image = image;
@@ -41,19 +41,19 @@ class Sprite {
     }
 }
 
-//アセットに画像をロードするクラス
+// アセットに画像をロードするクラス
 class AssetLoader {
     // Map オブジェクトはその要素について挿入順で反復処理を行うことができます。
     // for...of ループは各処理で [キー, 値] の配列を返します。
     // for (var [key, value] of myMap) {
-    //    console.log(key + ' = ' + value);
+    // console.log(key + ' = ' + value);
     // }
     constructor() {
         this._promises = [];
         this._assets = new Map();
     }
 
-    //Promiseでロードする
+    // Promiseでロードする
     addImage(name, url) {
         const img = new Image();
         img.src = url;
@@ -66,11 +66,11 @@ class AssetLoader {
 
         this._promises.push(promise);
     }
-    
+
     loadAll() {
         return Promise.all(this._promises).then((p) => this._assets);
     }
-    
+
     get(name) {
         return this._assets.get(name);
     }
@@ -78,7 +78,7 @@ class AssetLoader {
 
 const assets = new AssetLoader();
 
-//イベントを自分で実装するとこんなに楽なんだね！
+// イベントを自分で実装するとこんなに楽なんだね！
 class EventDispatcher {
     constructor() {
         this._eventListeners = {};
@@ -104,7 +104,7 @@ class GameEvent {
     }
 }
 
-//オブジェクトのもとになるもの．継承して使う．
+// オブジェクトのもとになるもの．継承して使う．
 class Actor extends EventDispatcher {
     constructor(x, y, hitArea, tags = []) {
         super();
@@ -117,7 +117,7 @@ class Actor extends EventDispatcher {
         this.y = y;
     }
 
-    //updateとrenderは継承先で定義する
+    // updateとrenderは継承先で定義する
     update(gameInfo, input) {}
     render(target) {}
 
@@ -125,20 +125,20 @@ class Actor extends EventDispatcher {
         return this.tags.includes(tagName);
     }
 
-    //他のActorの生成
+    // 他のActorの生成
     spawnActor(actor) {
         this.dispatchEvent('spawnactor', new GameEvent(actor));
     }
 
-    //自身の削除
+    // 自身の削除
     destroy() {
         this.dispatchEvent('destroy', new GameEvent(this));
     }
-    
+
     get x() {
         return this._x;
     }
-    
+
     set x(value) {
         this._x = value;
         this.hitArea.x = value + this._hitAreaOffsetX;
@@ -161,7 +161,7 @@ class SpriteActor extends Actor {
         this.width = sprite.rectangle.width;
         this.height = sprite.rectangle.height;
     }
-    
+
     render(target) {
         const context = target.getContext('2d');
         context.beginPath();
@@ -172,7 +172,7 @@ class SpriteActor extends Actor {
             this.x, this.y,
             rect.width, rect.height);
     }
-    
+
     isOutOfBounds(boundRect) {
         const actorLeft = this.x;
         const actorRight = this.x + this.width;
@@ -186,10 +186,43 @@ class SpriteActor extends Actor {
     }
 }
 
+// https://qiita.com/lookman/items/a50b8ae85b0f7e8605d2
+class Point {
+    constructor(x = 0, y = 0) {
+        this.x, this.y; // public
+        this.set(x, y);
+    }
+
+    set(x, y) {
+        this._x = x;
+        this._y = y;
+    }
+
+    getX() {
+        return this._x;
+    }
+
+    getY() {
+    	return this._y;
+    }
+
+    on(event) {
+        const rect = event.target.getBoundingClientRect();
+        this.set(
+            event.clientX - rect.left,
+            event.clientY - rect.top
+        );
+    }
+}
+
 class Input {
-    constructor(keyMap, prevKeyMap) {
+    constructor(keyMap, prevKeyMap, mouseDown, prevMouseDown, point, prevPoint) {
         this.keyMap = keyMap;
         this.prevKeyMap = prevKeyMap;
+        this.mouseDown = mouseDown;
+        this.prevMouseDown = prevMouseDown;
+        this.point = point;
+        this.prevPoint = prevPoint;
     }
 
     _getKeyFromMap(keyName, map) {
@@ -219,22 +252,52 @@ class Input {
         const currentDown = this.getKey(keyName);
         return (prevDown && !currentDown);
     }
+
+    getMouseDown() {
+        return (!this.prevMouseDown && this.mouseDown);
+    }
+
+    getMouseUp() {
+    	return (this.prevMouseDown && !this.mouseDown);
+    }
 }
 
 class InputReceiver {
     constructor() {
         this._keyMap = new Map();
         this._prevKeyMap = new Map();
+        this._mouseDown = false;
+        this._prevMouseDown = false;
+        this._point = new Point();
+        this._prevPoint = new Point();
 
-        addEventListener('keydown', (ke) => this._keyMap.set(ke.key, true));
+        addEventListener('keydown', (ke) =>
+        {
+        	this._keyMap.set(ke.key, true);
+        	console.log(ke.key);
+        });
         addEventListener('keyup', (ke) => this._keyMap.set(ke.key, false));
+
+        addEventListener('mousedown', (e) => this._mouseDown = true);
+        addEventListener('mouseup', (e) => this._mouseDown = false);
+        addEventListener('mousemove', (e) => this._point.on(e));
+        // addEventListener('mouseover', (e) => console.log(e));
     }
 
     getInput() {
         const keyMap = new Map(this._keyMap);
         const prevKeyMap = new Map(this._prevKeyMap);
         this._prevKeyMap = new Map(this._keyMap);
-        return new Input(keyMap, prevKeyMap);
+
+        const mouseDown = this._mouseDown;
+        const prevMouseDown = this._prevMouseDown;
+        this._prevMouseDown = this._mouseDown;
+
+        const point = this._point;
+        const prevPoint = this._prevPoint;
+        this._prevPoint = this._point;
+
+        return new Input(keyMap, prevKeyMap, mouseDown, prevMouseDown, point, prevPoint);
     }
 }
 
@@ -260,7 +323,7 @@ class Scene extends EventDispatcher {
         const index = this.actors.indexOf(actor);
         this.actors.splice(index, 1);
     }
-    
+
     changeScene(newScene) {
         const event = new GameEvent(newScene);
         this.dispatchEvent('changescene', event);
@@ -364,7 +427,7 @@ class Game {
         this._prevTimestamp = timestamp;
         this.currentFps = 1 / elapsedSec;
 
-        //
+        //ここで作って渡す（使い回さない）
         const screenRectangle = new Rectangle(0, 0, this.width, this.height);
         const info = new GameInformation(this.title, screenRectangle,
                                          this.maxFps, this.currentFps);

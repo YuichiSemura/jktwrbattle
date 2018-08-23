@@ -8,7 +8,7 @@ class TextActor extends Actor {
         this.message = text;
     }
 
-    //update,render 継承
+    // update,render 継承
 }
 
 class StartTextActor extends Actor {
@@ -19,7 +19,7 @@ class StartTextActor extends Actor {
         this.message = text;
     }
 
-    //update 継承
+    // update 継承
     update(gameInfo, input){
     }
 
@@ -30,7 +30,7 @@ class StartTextActor extends Actor {
         context.shadowOffsetY = 0;
         context.shadowBlur = 0;
 
-        const px = 32;
+        const px = 39;
         context.font = px.toString()+"px 'Century Gothic'";
         const alpha = (Math.random() + 2) / 3
 
@@ -38,29 +38,37 @@ class StartTextActor extends Actor {
         const textWidth = context.measureText(this.message).width;
         context.fillText(this.message, this.x - textWidth/ 2, this.y - px);
 
-        context.strokeStyle = "rgba(150,150,255,0.3)";
+        context.strokeStyle = "rgba(0,0,0,0.3)";
         context.strokeText(this.message, this.x - textWidth/ 2, this.y - px);
     }
 }
 
-class SceneFrameTextActor extends TextActor {
+class DebugTextActor extends TextActor {
     constructor(x, y, text) {
         super(x, y, text)
 
         this.count = 0;
         this.origin = text;
         this.message = this.origin + this.count.toString();
+        this.alpha = 0;
     }
 
     update(gameInfo, input){
-    this.count = this.count + 1;
+        this.count = this.count + 1;
         this.message = this.origin + this.count.toString();
+        if(input.getKeyDown(' ')) {
+            if(this.alpha > 0){
+            	this.alpha = 0;
+            }else{
+            	this.alpha = 1.0 ;
+            }
+        }
     }
 
     render(target) {
         const context = target.getContext('2d');
         context.font = "40px 'Century Gothic'";
-        context.fillStyle = 'black';
+        context.fillStyle = "rgba(0,0,0," + this.alpha.toString() +")";
         context.shadowOffsetX = 0;
         context.shadowOffsetY = 0;
         context.fillText(this.message, this.x, this.y);
@@ -68,7 +76,7 @@ class SceneFrameTextActor extends TextActor {
 }
 
 class FloatingSpriteActor extends SpriteActor {
-    constructor(x, y, imgURI, imgWidth, imgHeight, random, change) {
+    constructor(x, y, imgURI, imgWidth, random, change) {
         const img = assets.get(imgURI);
         const sprite = new Sprite(img, new Rectangle(0, 0, img.width, img.height));
         const hitArea = new Rectangle(0, 0, 0, 0);
@@ -78,7 +86,7 @@ class FloatingSpriteActor extends SpriteActor {
         this.random = random;
         this.change = change;
         this.imgWidth = imgWidth;
-        this.imgHeight = imgHeight;
+        this.imgHeight = Math.floor(imgWidth * img.height / img.width);
 
         this.originX = x + random / 2;
         this.originY = y + random / 2;
@@ -117,34 +125,57 @@ class FloatingSpriteActor extends SpriteActor {
             this.x - this.imgWidth / 2 , this.y - this.imgHeight / 2 ,
             this.imgWidth, this.imgHeight);
     }
-    //render 継承
+    // render 継承
 }
 
 class TowerBattleTitleScene extends Scene {
     constructor(renderingTarget) {
         super('タイトル', 'aqua', renderingTarget);
 
-        //logo x, y, img, width, height, floatSize, time
-        const logo = new FloatingSpriteActor(210, 340, 'logo', 434, 105, 7, 60);
+        //TODO 配置をCanvasサイズで合わせる
+
+        // logo x, y, img, width, height, floatSize, time
+        const logo = new FloatingSpriteActor(200, 340, 'logo', 360, 7, 60);
         this.add(logo);
 
-        //sun x, y, img, width, height, floatSize, time
-        const sun = new FloatingSpriteActor(300, 100, 'sun', 120, 120, 5, 95);
+        // sun x, y, img, width, height, floatSize, time
+        const sun = new FloatingSpriteActor(300, 100, 'sun', 120, 5, 95);
         this.add(sun);
 
-        const start = new StartTextActor(200, 560, '>>   Start   <<');
+        const start = new StartTextActor(200, 600, '>>  START  <<');
         this.add(start);
 
-        const sceneFrame = new SceneFrameTextActor(10, 710, 'Title Frame:');
+        const sceneFrame = new DebugTextActor(10, 710, 'Title Frame:');
         this.add(sceneFrame);
     }
 
     update(gameInfo, input) {
         super.update(gameInfo, input);
-        if(input.getKeyDown(' ')) {
-            const mainScene = new TowerBattleMainScene(this.renderingTarget);
-            this.changeScene(mainScene);
+        if(input.getMouseDown()) {
+        	const upLine = gameInfo.screenRectangle.height * 0.6;
+        	const bottomLine = gameInfo.screenRectangle.height * 0.9;
+        	if(input.point.getY() > upLine && input.point.getY() < bottomLine){
+                const mainScene = new TowerBattleMainScene(this.renderingTarget);
+                this.changeScene(mainScene);
+        	}
         }
+    }
+}
+
+class TowerBattleMainScene extends Scene {
+    constructor(renderingTarget) {
+        super('メイン', 'aqua', renderingTarget);
+
+        //sun x, y, img, width, floatSize, time
+        const sun = new FloatingSpriteActor(300, 100, 'sun', 120, 5, 95);
+        this.add(sun);
+
+        const sceneFrame = new DebugTextActor(10, 710, 'Main Frame:');
+        this.add(sceneFrame);
+    }
+
+    update(gameInfo, input) {
+        super.update(gameInfo, input);
     }
 }
 
