@@ -187,9 +187,9 @@ class TowerBattleTitleGame extends Game {
     }
 }
 
-assets.addImage('sprite', 'sprite.png');
-assets.addImage('sun', 'sun_yellow1.png');
-assets.addImage('logo', 'logo.png');
+assets.addImage('sprite', 'assets/sprite.png');
+assets.addImage('sun', 'assets/sun_yellow1.png');
+assets.addImage('logo', 'assets/logo.png');
 assets.loadAll().then((a) => {
     const game = new TowerBattleTitleGame();
     document.body.appendChild(game.screenCanvas);
