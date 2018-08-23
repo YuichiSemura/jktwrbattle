@@ -271,11 +271,7 @@ class InputReceiver {
         this._point = new Point();
         this._prevPoint = new Point();
 
-        addEventListener('keydown', (ke) =>
-        {
-        	this._keyMap.set(ke.key, true);
-        	console.log(ke.key);
-        });
+        addEventListener('keydown', (ke) => this._keyMap.set(ke.key, true));
         addEventListener('keyup', (ke) => this._keyMap.set(ke.key, false));
 
         addEventListener('mousedown', (e) => this._mouseDown = true);

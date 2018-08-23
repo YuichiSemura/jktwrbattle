@@ -80,7 +80,7 @@ class FloatingSpriteActor extends SpriteActor {
         const img = assets.get(imgURI);
         const sprite = new Sprite(img, new Rectangle(0, 0, img.width, img.height));
         const hitArea = new Rectangle(0, 0, 0, 0);
-        super(x, y, sprite, hitArea, [img]);
+        super(x, y, sprite, hitArea);
 
         this.count = 0;
         this.random = random;
@@ -128,6 +128,40 @@ class FloatingSpriteActor extends SpriteActor {
     // render 継承
 }
 
+class BattleObjectSpriteActor extends SpriteActor {
+    constructor(x, y, imgURI, imgWidth, imgHeight = -1) {
+        const img = assets.get(imgURI);
+        const sprite = new Sprite(img, new Rectangle(0, 0, img.width, img.height));
+        const hitArea = new Rectangle(0, 0, 0, 0);
+        super(x, y, sprite, hitArea);
+
+        this.count = 0;
+        this.imgWidth = imgWidth;
+        if(imgHeight === -1){
+            this.imgHeight = Math.floor(imgWidth * img.height / img.width);
+        }else{
+        	this.imgHeight = imgHeight;
+        }
+
+        this.angle = 0;
+    }
+
+    render(target) {
+        const context = target.getContext('2d');
+        context.beginPath();
+        const rect = this.sprite.rectangle;
+        context.shadowOffsetX = 0;
+        context.shadowOffsetY = 0;
+        context.shadowBlur = 0;
+        context.drawImage(this.sprite.image,
+            rect.x, rect.y,
+            rect.width, rect.height,
+            this.x - this.imgWidth / 2 , this.y - this.imgHeight / 2 ,
+            this.imgWidth, this.imgHeight);
+    }
+    // render 継承
+}
+
 class TowerBattleTitleScene extends Scene {
     constructor(renderingTarget) {
         super('タイトル', 'aqua', renderingTarget);
@@ -135,12 +169,16 @@ class TowerBattleTitleScene extends Scene {
         //TODO 配置をCanvasサイズで合わせる
 
         // logo x, y, img, width, height, floatSize, time
-        const logo = new FloatingSpriteActor(200, 340, 'logo', 360, 7, 60);
+        const logo = new FloatingSpriteActor(200, 360, 'logo', 360, 7, 60);
         this.add(logo);
 
         // sun x, y, img, width, height, floatSize, time
-        const sun = new FloatingSpriteActor(300, 100, 'sun', 120, 5, 95);
+        const sun = new FloatingSpriteActor(330, 70, 'sun', 120, 5, 95);
         this.add(sun);
+
+        // kumo x, y, img, width, height, floatSize, time
+        const kumo = new FloatingSpriteActor(170, 150, 'kumo', 300, 5, 95);
+        this.add(kumo);
 
         const start = new StartTextActor(200, 600, '>>  START  <<');
         this.add(start);
@@ -167,8 +205,16 @@ class TowerBattleMainScene extends Scene {
         super('メイン', 'aqua', renderingTarget);
 
         //sun x, y, img, width, floatSize, time
-        const sun = new FloatingSpriteActor(300, 100, 'sun', 120, 5, 95);
+        const sun = new FloatingSpriteActor(330, 70, 'sun', 120, 5, 95);
         this.add(sun);
+
+        //kusa x, y, img, width, floatSize, time
+        const kusa = new BattleObjectSpriteActor(200, 600, 'kusa', 320);
+        this.add(kusa);
+
+        //jk1 x, y, img, width, floatSize, time
+        const jk1 = new BattleObjectSpriteActor(200, 300, 'jk1', 50);
+        this.add(jk1);
 
         const sceneFrame = new DebugTextActor(10, 710, 'Main Frame:');
         this.add(sceneFrame);
@@ -190,6 +236,9 @@ class TowerBattleTitleGame extends Game {
 assets.addImage('sprite', 'assets/sprite.png');
 assets.addImage('sun', 'assets/sun_yellow1.png');
 assets.addImage('logo', 'assets/logo.png');
+assets.addImage('kumo', 'assets/kumo.png');
+assets.addImage('kusa', 'assets/kusa.png');
+assets.addImage('jk1', 'assets/jk1.png');
 assets.loadAll().then((a) => {
     const game = new TowerBattleTitleGame();
     document.body.appendChild(game.screenCanvas);
