@@ -206,6 +206,10 @@ class Point {
     	return this._y;
     }
 
+    getRectangle(){
+    	return new Rectangle(this.getX(), this.getY(), 1, 1);
+    }
+
     on(event) {
         const rect = event.target.getBoundingClientRect();
         this.set(
@@ -327,7 +331,9 @@ class Scene extends EventDispatcher {
 
     update(gameInfo, input) {
         this._updateAll(gameInfo, input);
-        this._hitTest();
+        //this._hitTest();
+
+
         this._disposeDestroyedActors();
         this._clearScreen(gameInfo);
         this._renderAll();
@@ -348,6 +354,16 @@ class Scene extends EventDispatcher {
                     obj1.dispatchEvent('hit', new GameEvent(obj2));
                     obj2.dispatchEvent('hit', new GameEvent(obj1));
                 }
+            }
+        }
+    }
+
+    _rotate(){
+    	const length = this.actors.length;
+        for(let i=0; i < length - 1; i++) {
+            const obj = this.actors[i];
+            if(obj.hasTag('target')){
+            	obj.dispatchEvent('rotate', new GameEvent(obj));
             }
         }
     }
