@@ -17,6 +17,8 @@ class StartTextActor extends Actor {
 		super(x, y, hitArea);
 
 		this.message = text;
+		this.count = 0;
+		this.tm = 50;
 	}
 
 	// update 継承
@@ -30,9 +32,11 @@ class StartTextActor extends Actor {
 		context.shadowOffsetY = 0;
 		context.shadowBlur = 0;
 
-		const px = 39;
+		const px = 42;
 		context.font = px.toString()+"px 'Century Gothic'";
-		const alpha = (Math.random() + 2) / 3
+
+		this.count = ++this.count%this.tm;
+		const alpha = 0.6 + Math.min(this.count, this.tm - this.count)/100
 
 		context.fillStyle = "rgba(255,255,255,"+ alpha.toString() +")";
 		const textWidth = context.measureText(this.message).width;
@@ -271,6 +275,7 @@ class MatterActor extends Actor{
 		Matter.Runner.run(this.runner, this.engine);
 		this.count = 0;
 
+		Shape.kusa.position = {x : this.target.width*0.475 , y : this.target.height*0.80 };
 		const kusa = Matter.Body.create(Shape.kusa);
 		Matter.Body.scale(kusa, Shape.kusaScale, Shape.kusaScale);
 		Matter.World.add(this.world, [kusa]);
@@ -487,7 +492,7 @@ class TowerBattleMainScene extends Scene {
 		super('メイン', 'aqua', renderingTarget);
 		//盤面
 
-		//jk1 x, y, img, width, floatSize, time
+		const width = renderingTarget.width, height = renderingTarget.height;
 
 		const matterActor = new MatterActor(renderingTarget);
 		this.matterActor = matterActor;
@@ -495,17 +500,17 @@ class TowerBattleMainScene extends Scene {
 
 		//あとに描画されるもの
 		//sun x, y, img, width, floatSize, time
-		const sun = new FloatingSpriteActor(400, 70, 'sun', 120, 5, 95);
+		const sun = new FloatingSpriteActor(width*0.8, height*0.09, 'sun', 120, 5, 95);
 		this.add(sun);
 
-		const turnButton = new ButtonObjectActor(200, 670, 240, 60 , "rotate");
+		const turnButton = new ButtonObjectActor(width*0.5, height*0.93, 240, 60 , "rotate");
 		this.add(turnButton);
 		this.button = turnButton;
 
-		const debugText = new DebugTextActor(0, 720, 'Main Frame:');
+		const debugText = new DebugTextActor(10, height-10, 'Main Frame:');
 		this.add(debugText);
 
-		const jk1 = new BattleObjectSpriteActor(200, 200);
+		const jk1 = new BattleObjectSpriteActor(width*0.5, 200);
 		this.add(jk1);
 
 		this.phase = new FirstGamePhase(0, this);
@@ -541,24 +546,24 @@ class TowerBattleTitleScene extends Scene {
 	constructor(renderingTarget) {
 		super('タイトル', 'aqua', renderingTarget);
 
-		//TODO 配置をCanvasサイズで合わせる
+		const width = renderingTarget.width, height = renderingTarget.height;
 
 		// logo x, y, img, width, height, floatSize, time
-		const logo = new FloatingSpriteActor(200, 360, 'logo', 360, 7, 60);
+		const logo = new FloatingSpriteActor(width*0.49, height*0.5, 'logo', 360, 7, 60);
 		this.add(logo);
 
 		// sun x, y, img, width, height, floatSize, time
-		const sun = new FloatingSpriteActor(400, 70, 'sun', 120, 5, 95);
+		const sun = new FloatingSpriteActor(width*0.8, height*0.09, 'sun', 120, 5, 95);
 		this.add(sun);
 
 		// kumo x, y, img, width, height, floatSize, time
-		const kumo = new FloatingSpriteActor(170, 150, 'kumo', 300, 5, 95);
+		const kumo = new FloatingSpriteActor(width*0.35 , height*0.22, 'kumo', 300, 5, 95);
 		this.add(kumo);
 
-		const start = new StartTextActor(200, 600, '>>  START  <<');
+		const start = new StartTextActor(width*0.5, height*0.85, '>>  START  <<');
 		this.add(start);
 
-		const sceneFrame = new DebugTextActor(10, 710, 'Title Frame:');
+		const sceneFrame = new DebugTextActor(10, height-10, 'Title Frame:');
 		this.add(sceneFrame);
 	}
 
@@ -577,7 +582,7 @@ class TowerBattleTitleScene extends Scene {
 
 class TowerBattleTitleGame extends Game {
 	constructor() {
-		super('TowerBattle', 500, 720, 60);
+		super('TowerBattle', 400, 720, 60);
 		const titleScene = new TowerBattleTitleScene(this.screenCanvas);
 		this.changeScene(titleScene);
 	}
