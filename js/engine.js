@@ -104,6 +104,17 @@ class GameEvent {
     }
 }
 
+class GamePhase{
+	constructor(startFrame,parentScene) {
+		this.startFrame = startFrame;
+		this.currentFrame = startFrame;
+		this.parentScene = parentScene;
+	}
+
+	update(gameInfo,input){
+	}
+}
+
 // オブジェクトのもとになるもの．継承して使う．
 class Actor extends EventDispatcher {
     constructor(x, y, hitArea, tags = []) {
@@ -333,7 +344,6 @@ class Scene extends EventDispatcher {
         this._updateAll(gameInfo, input);
         //this._hitTest();
 
-
         this._disposeDestroyedActors();
         this._clearScreen(gameInfo);
         this._renderAll();
@@ -388,14 +398,26 @@ class Scene extends EventDispatcher {
         this._destroyedActors.forEach((actor) => this.remove(actor));
         this._destroyedActors = [];
     }
+
+    hasTagActor(tag){
+    	const length = this.actors.length;
+    	for(let i=0; i < length; i++) {
+            const obj = this.actors[i];
+            if(obj.hasTag(tag)){
+            	return true;
+            }
+        }
+    	return false;
+    }
 }
 
 class GameInformation {
-    constructor(title, screenRectangle, maxFps, currentFps) {
+    constructor(title, screenRectangle, maxFps, currentFps, currentScene) {
         this.title = title;
         this.screenRectangle = screenRectangle;
         this.maxFps = maxFps;
         this.currentFps = currentFps;
+        this.currentScene = currentScene;
     }
 }
 
@@ -442,7 +464,7 @@ class Game {
         //ここで作って渡す（使い回さない）
         const screenRectangle = new Rectangle(0, 0, this.width, this.height);
         const info = new GameInformation(this.title, screenRectangle,
-                                         this.maxFps, this.currentFps);
+                                         this.maxFps, this.currentFps, this.currentScene);
         const input = this._inputReceiver.getInput();
         this.currentScene.update(info, input);
 
