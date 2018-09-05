@@ -118,9 +118,15 @@ class FloatingSpriteActor extends SpriteActor {
 		this.nextTargetX = Math.random() * (this.random + 1) - this.random;
 		this.nextTargetY = Math.random() * (this.random + 1) - this.random;
 		this.angle = 0;
+
+		this.isGameover = false;
+		this.isGameoverCount = 1;
 	}
 
 	update(gameInfo, input){
+		if(this.isGameover){
+			this.originY = this.originY + this.isGameoverCount++*0.3;
+		}
 		this.count = this.count + 1;
 		const nextCount = this.count - Math.floor(this.count / this.change) * this.change;
 		if(nextCount === 0){
@@ -151,12 +157,13 @@ class FloatingSpriteActor extends SpriteActor {
 }
 
 class ButtonObjectActor extends SpriteActor{
-	constructor(x, y, width, height, imgURI, tags=[]) {
-		tags.push('button');
-		const img = assets.get(imgURI);
+	constructor(x, y, width, height, label, tags=[]) {
+		const img = assets.get(label);
 		const sprite = new Sprite(img, new Rectangle(0, 0, img.width, img.height));
 		const hitArea = new Rectangle(x, y, x + width, y + height);
 		super(x, y, sprite, hitArea, tags);
+
+		this.label = label;
 
 		this.width = width;
 		this.height = height;
@@ -164,6 +171,10 @@ class ButtonObjectActor extends SpriteActor{
 
 		this.imgWidth = width;
 		this.imgHeight = Math.floor(this.imgWidth * img.height / img.width);
+		this.isEnabled = true;
+
+		this.isGameover = false;
+		this.isGameoverCount = 1;
 	}
 
 	isInBounds(point) {
@@ -180,11 +191,15 @@ class ButtonObjectActor extends SpriteActor{
 	}
 
 	update(gameInfo, input) {
-		if(input.getMouseDown() && this.isInBounds(input.point)){
+		if(this.isGameover){
+			this.y = this.y + this.isGameoverCount++*0.1;
+		}
+
+		if(input.getMouseDown() && this.isEnabled && this.isInBounds(input.point)){
 			this.isPush = true;
-		}else if(input.getMouseUp()){
+		}else if(input.getMouseUp() && this.isEnabled){
 			if(this.isPush == true && this.isInBounds(input.point)){
-				gameInfo.currentScene.dispatchEvent('rotateTarget', new GameEvent(this));
+				gameInfo.currentScene.dispatchEvent(this.label, new GameEvent(this));
 			}
 			this.isPush = false;
 		}
@@ -280,7 +295,8 @@ class MatterActor extends Actor{
 		Matter.Body.scale(kusa, Shape.kusaScale, Shape.kusaScale);
 		Matter.World.add(this.world, [kusa]);
 
-		this.addEventListener('addTarget', (e) => this.add(e));
+		//this.addEventListener('addTarget', (e) => this.add(e));
+		this.debug = false;
 	}
 
 	update(gameInfo, input) {
@@ -299,6 +315,10 @@ class MatterActor extends Actor{
 		}
 
 		if(input.getKeyDown(' ')) {
+			//this.engine.enableSleeping = !this.engine.enableSleeping;
+			this.debug = !this.debug;
+		}
+		if(input.getKeyDown('Enter')) {
 			this.render2.options.wireframes = !this.render2.options.wireframes;
 		}
 
@@ -316,33 +336,35 @@ class MatterActor extends Actor{
 		context.shadowOffsetY = 2;
 		context.shadowBlur = 3;
 
-		//Matter.Render.bodyShadows(this.render2, bodies, context);
 		Matter.Render.bodies(this.render2, bodies, context);
-		//Matter.Render.world(this.render2);
+		if(this.debug){
 
-		//Matter.Render.bodyBounds(render, bodies, context);
+			//Matter.Render.world(this.render2);
 
-		//Matter.Render.bodyAxes(render, bodies, context);
+			//Matter.Render.bodyBounds(render, bodies, context);
 
-		Matter.Render.bodyPositions(render, bodies, context);
+			//Matter.Render.bodyAxes(render, bodies, context);
 
-		//Matter.Render.bodyVelocity(render, bodies, context);
+			Matter.Render.bodyPositions(render, bodies, context);
 
-		//Matter.Render.bodyIds(render, bodies, context);
+			Matter.Render.bodyVelocity(render, bodies, context);
 
-		//Matter.Render.separations(render, engine.pairs.list, context);
+			//Matter.Render.bodyIds(render, bodies, context);
 
-		Matter.Render.collisions(render, engine.pairs.list, context);
+			Matter.Render.separations(render, engine.pairs.list, context);
 
-		//Matter.Render.vertexNumbers(render, bodies, context);
+			Matter.Render.collisions(render, engine.pairs.list, context);
 
-		//Matter.Render.mousePosition(render, render.mouse, context);
+			//Matter.Render.vertexNumbers(render, bodies, context);
 
-		//Matter.Render.grid(render, engine.broadphase, context);
+			//Matter.Render.mousePosition(render, render.mouse, context);
 
-		//Matter.Render.debug(render, context);
+			//Matter.Render.grid(render, engine.broadphase, context);
 
-		//Matter.Render.endViewTransform(render);
+			//Matter.Render.debug(render, context);
+
+			//Matter.Render.endViewTransform(render);
+		}
 
 	}
 
@@ -366,6 +388,25 @@ class MatterActor extends Actor{
 		Matter.Body.setPosition(tg, pos3);
 		Matter.Body.scale(tg, Shape.imgArray[id].originScale, Shape.imgArray[id].originScale);
 		Matter.Body.rotate(tg, angle*Math.PI/180);
+	}
+
+	isInBound(){
+		const bodies = this.world.bodies;
+		for (var i = 0; i < bodies.length; i++) {
+			const body = bodies[i];
+			if(body.position.y > this.target.height){
+				return false;
+			}
+		}
+		return true;
+	}
+
+	breakBodies(){
+		const bodies = this.world.bodies;
+		for (var i = 0; i < bodies.length; i++) {
+			const body = bodies[i];
+			Matter.Body.setStatic(body,false);
+		}
 	}
 }
 
@@ -413,13 +454,47 @@ class BattleObjectSpriteActor extends SpriteActor {
 			this.isPush = true;
 		}else if(input.getMouseUp() && this.isPush == true){
 			this.isPush = false;
-			gameInfo.currentScene.dispatchEvent('addTarget', new MatterGameEvent(this, this.imgId ,input.point, this.angle, this.imgWidth, this.imgHeight));
-			this.destroy();
+			this.addMatterGameEvent(gameInfo.currentScene, input.point);
+		}
+	}
+
+	addMatterGameEvent(scene, point = null){
+		scene.dispatchEvent('addTarget', this.getMatterGameEvent(point));
+		this.destroy();
+	}
+
+	addMatterGameEventTimeOut(scene, point = null){
+		scene.dispatchEvent('addTargetTimeOut', this.getMatterGameEvent(point));
+		this.destroy();
+	}
+
+	getMatterGameEvent(point){
+		if(point == null){
+			point = new Point(this.x, this.y);
+		}
+		return new MatterGameEvent(this, this.imgId, point, this.angle, this.imgWidth, this.imgHeight);
+	}
+
+	setRadAndColor(angleRemain){
+		this.angleRemain = angleRemain;
+		if(0 <= this.angleRemain*360 && this.angleRemain*360 < 90){
+			this.indColor = 'rgba(255,0,0,'+((1 - angleRemain)*3/2).toString()+')';
+		}else if(90 <= this.angleRemain*360 && this.angleRemain*360 < 180){
+			this.indColor = 'rgba(255,255,0,'+((1 - angleRemain)*3/2).toString()+')';
+		}else{
+			this.indColor = 'rgba(0,0,255,'+((1 - angleRemain)*3/2).toString()+')';
 		}
 	}
 
 	render(target) {
 		const context = target.getContext('2d');
+
+		context.beginPath();
+		context.arc(this.x, this.y, 50 + this.angleRemain*360/5 , (270-this.angleRemain*360)*Math.PI/180, 270*Math.PI/180,  false);
+		context.strokeStyle = this.indColor;
+		context.lineWidth = 5;
+		context.stroke();
+
 		context.beginPath();
 		const rect = this.sprite.rectangle;
 		context.shadowOffsetX = 2;
@@ -442,15 +517,31 @@ class FirstGamePhase extends GamePhase{
 	constructor(startFrame, parentScene) {
 		super(startFrame,parentScene);
 		this.phaseID = 0;
-		console.log("FirstGamePhase");
+		//console.log("FirstGamePhase");
+
+		this.startActor = this.parentScene._addFloatingSpriteActor(0.49, 0.5, 400, 'start');
+
+		this.givenFrame = 120;
 	}
 
 	update(gameInfo,input){
-		this.currentFrame++;
-		if(this.currentFrame - this.startFrame == 30){
-			return new PlayGamePhase(this.currentFrame, this.parentScene);
+		const minY = Math.ceil((this.renderingTarget.height + this.startActor.imgHeight) / this.givenFrame);
+		if(this.currentFrame - this.startFrame > this.givenFrame / 2){
+			this.startActor.originY -= minY;
 		}
-		return this;
+
+		this.currentFrame++;
+		if(this.currentFrame - this.startFrame < this.givenFrame){
+			return this;
+		}
+
+		//end
+		this.destroy();
+		return new PlayGamePhase(this.currentFrame, this.parentScene);
+	}
+
+	destroy(){
+		this.startActor.destroy();
 	}
 }
 
@@ -458,17 +549,34 @@ class PlayGamePhase extends GamePhase{
 	constructor(startFrame, parentScene) {
 		super(startFrame,parentScene);
 		this.phaseID = 1;
-		console.log("PlayGamePhase");
+		//console.log("PlayGamePhase");
+
+		this.givenFrame = 480;
+
+		this.target = null;
 		if(!parentScene.hasTagActor('target')){
-			parentScene.add(new BattleObjectSpriteActor(200, 200));
+			this.target = new BattleObjectSpriteActor(200, 200)
+			parentScene.add(this.target);
 		}
+
 	}
+
 	update(gameInfo,input){
 		this.currentFrame++;
-		if(this.currentFrame - this.startFrame == 30){
-			return new MatterGamePhase(this.currentFrame, this.parentScene);
+
+		this.target.setRadAndColor((this.givenFrame + this.startFrame - this.currentFrame) / this.givenFrame);
+
+		if(this.currentFrame - this.startFrame < this.givenFrame){
+			return this;
 		}
-		return this;
+
+		//end
+		this.parentScene.searchTarget().addMatterGameEventTimeOut(this.parentScene);
+		return new MatterGamePhase(this.currentFrame, this.parentScene);
+	}
+
+	destroy(){
+
 	}
 }
 
@@ -476,14 +584,57 @@ class MatterGamePhase extends GamePhase{
 	constructor(startFrame, parentScene) {
 		super(startFrame,parentScene);
 		this.phaseID = 2;
-		console.log("MatterGamePhase");
+		//console.log("MatterGamePhase");
+
+		this.givenFrame = 180;
 	}
+
+
 	update(gameInfo,input){
 		this.currentFrame++;
-		if(this.currentFrame - this.startFrame == 300){
-			return new PlayGamePhase(this.currentFrame, this.parentScene);
+		if(this.currentFrame - this.startFrame < this.givenFrame){
+			return this;
+		}
+
+		//end
+		this.destroy();
+		return new PlayGamePhase(this.currentFrame, this.parentScene);
+	}
+
+	destroy(){
+
+	}
+}
+
+class OverGamePhase extends GamePhase{
+	constructor(startFrame, parentScene) {
+		super(startFrame,parentScene);
+		this.phaseID = 3;
+		//console.log("OverGamePhase");
+
+		this.endActor = this.parentScene._addFloatingSpriteActor(0.49, -0.1, 390, 'end');
+
+		this.givenFrame = 180;
+	}
+
+
+	update(gameInfo,input){
+		this.currentFrame++;
+
+		//const minY = Math.ceil((this.renderingTarget.height + this.endActor.imgHeight) / this.givenFrame);
+		const minY = 1;
+		this.endActor.originY = Math.min(this.renderingTarget.height * 0.5,
+		this.endActor.originY + minY * (this.currentFrame - this.startFrame)**2 *0.02);
+
+		if(this.currentFrame - this.startFrame == 120){
+			this.button1 = this.parentScene._addButtonObjectActor(0.5, 0.73, 240, 60, "restart");
+			this.button2 = this.parentScene._addButtonObjectActor(0.5, 0.85, 240, 60, "title");
 		}
 		return this;
+	}
+
+	destroy(){
+		this.endActor.destroy();
 	}
 }
 
@@ -495,50 +646,102 @@ class TowerBattleMainScene extends Scene {
 		const width = renderingTarget.width, height = renderingTarget.height;
 
 		const matterActor = new MatterActor(renderingTarget);
-		this.matterActor = matterActor;
 		this.add(matterActor);
+		this.matterActor = matterActor;
 
 		//あとに描画されるもの
 		//sun x, y, img, width, floatSize, time
-		const sun = new FloatingSpriteActor(width*0.8, height*0.09, 'sun', 120, 5, 95);
-		this.add(sun);
+		//const sun = new FloatingSpriteActor(width*0.8, height*0.09, 'sun', 120, 5, 95);
+		//this.add(sun);
+		this.sun = this._addFloatingSpriteActor(0.8, 0.09, 120, 'sun');
 
-		const turnButton = new ButtonObjectActor(width*0.5, height*0.93, 240, 60 , "rotate");
-		this.add(turnButton);
-		this.button = turnButton;
+		//const turnButton = new ButtonObjectActor(width*0.5, height*0.93, 240, 60 , "rotate");
+		//this.add(turnButton);
+		this.button = this._addButtonObjectActor(0.5, 0.93, 240, 60, "rotate");
 
 		const debugText = new DebugTextActor(10, height-10, 'Main Frame:');
 		this.add(debugText);
 
-		const jk1 = new BattleObjectSpriteActor(width*0.5, 200);
-		this.add(jk1);
-
 		this.phase = new FirstGamePhase(0, this);
 
-		this.addEventListener('rotateTarget', (e) => this._rotateTarget());
-		this.addEventListener('addTarget', (e) => this.matterActor.add(e));
+		this.addEventListener('rotate', (e) => this._rotateTarget());
+		this.addEventListener('addTarget', (e) => {
+				const x = this.phase;
+				this.phase = new MatterGamePhase(this.phase.currentFrame, this.phase.parentScene);
+				x.destroy();
+				matterActor.add(e);
+			}
+		);
+
+		this.addEventListener('addTargetTimeOut', (e) => matterActor.add(e));
+		this.addEventListener('gameover', (e) => {
+				const x = this.phase;
+				this.phase = new OverGamePhase(x.currentFrame, x.parentScene);
+				x.destroy();
+				this.gameover();
+			}
+		);
+		this.addEventListener('title', (e) => {
+			const scene = new TowerBattleTitleScene(this.renderingTarget);
+            this.changeScene(scene);
+		});
+
+		this.addEventListener('restart', (e) => {
+			const scene = new TowerBattleMainScene(this.renderingTarget);
+            this.changeScene(scene);
+		});
 	}
 
 	update(gameInfo, input) {
 		this.phase = this.phase.update();
-		if(this.phase instanceof FirstGamePhase){
 
-		}else if(this.phase instanceof PlayGamePhase){
-
-		}else if(this.phase instanceof MatterGamePhase){
-
+		if(!this.matterActor.isInBound() && !(this.phase instanceof OverGamePhase)){
+			this.dispatchEvent('gameover', new GameEvent(this));
 		}
+
 		super.update(gameInfo, input);
 	}
 
 	_rotateTarget(){
+		const targetObj = this.searchTarget();
+		if(targetObj == null) return;
+		targetObj.updateAngle();
+	}
+
+	searchTarget(){
 		const length = this.actors.length;
-        for(let i=0; i < length; i++) {
-            const obj = this.actors[i];
-            if(obj.hasTag('target')){
-            	obj.updateAngle();
-            }
-        }
+		for(let i=0; i < length; i++) {
+			const obj = this.actors[i];
+			if(obj.hasTag('target')){
+				return obj;
+			}
+		}
+		return null;
+	}
+
+	_addFloatingSpriteActor(x, y, size, label){
+		// kumo x, y, img, width, height, floatSize, time
+		const width = this.renderingTarget.width, height = this.renderingTarget.height;
+		const actor = new FloatingSpriteActor(width*x , height*y, label , size, 5, 95);
+		this.add(actor);
+		return actor;
+	}
+
+	_addButtonObjectActor(x, y, width, height, label){
+		// kumo x, y, img, width, height, floatSize, time
+		const tWidth = this.renderingTarget.width, tHeight = this.renderingTarget.height;
+		const actor = new ButtonObjectActor(tWidth*x , tHeight*y, width, height, label);
+		this.add(actor);
+		return actor;
+	}
+
+	gameover(){
+		const tar = this.searchTarget();
+		if(tar != null) tar.destroy();
+		this.matterActor.breakBodies();
+		this.button.isEnabled = false;
+		this.button.isGameover = true;
+		this.sun.isGameover = true;
 	}
 }
 
@@ -593,6 +796,11 @@ assets.addImage('sun', 'assets/sun_yellow1.png');
 assets.addImage('logo', 'assets/logo.png');
 assets.addImage('kumo', 'assets/kumo.png');
 assets.addImage('rotate', 'assets/rotate.png');
+assets.addImage('restart', 'assets/restart.png');
+assets.addImage('title', 'assets/title.png');
+assets.addImage('start', 'assets/start.png');
+assets.addImage('end', 'assets/end.png');
+
 assets.addImage('jk1', 'kirinuki/jk1.png');
 assets.addImage('jk2', 'kirinuki/fjwr.png');
 assets.addImage('kusa', 'kirinuki/kusa.png');

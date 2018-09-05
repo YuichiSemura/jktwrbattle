@@ -58,4 +58,4 @@ Shape.kusa = {
 }
 
 //ここ更新して画像追加
-Shape.imgArray = [Shape.jk1, Shape.jk2];
+Shape.imgArray = [Shape.jk1, /*Shape.jk2*/];
