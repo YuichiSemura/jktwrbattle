@@ -802,7 +802,7 @@ assets.addImage('start', 'assets/start.png');
 assets.addImage('end', 'assets/end.png');
 
 assets.addImage('jk1', 'kirinuki/jk1.png');
-assets.addImage('jk2', 'kirinuki/fjwr.png');
+//assets.addImage('jk2', 'kirinuki/fjwr.png');
 assets.addImage('kusa', 'kirinuki/kusa.png');
 
 assets.loadAll().then((a) => {
